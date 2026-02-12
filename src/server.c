@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "http.h"
 
@@ -14,9 +15,8 @@ int main(void) {
     struct sockaddr_storage their_addr;
     int sockfd, new_fd;
     struct addrinfo hints;
-    struct addrinfo *res;
-    socklen_t addr_size;
-    addr_size = sizeof their_addr;
+    struct addrinfo *res, *original;
+    socklen_t addr_size = sizeof their_addr;
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
@@ -28,6 +28,9 @@ int main(void) {
         exit(1);
     }
 
+    original = res;
+
+    sockfd = -1;
     while(res) {
         if((sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) >= 0) break;
         res = res->ai_next;
@@ -37,6 +40,8 @@ int main(void) {
         exit(1);
     }
 
+    int yes = 1;
+    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
     if (bind(sockfd, res->ai_addr, res->ai_addrlen) == -1) {
         fprintf(stderr, "bind() error\n");
         exit(1);
@@ -48,20 +53,30 @@ int main(void) {
     }
 
     while (1) {
+        addr_size = sizeof their_addr;
         new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
 
-        char *data[1024];
-        recv(new_fd, data, 1024, 0);
+        if(new_fd == -1) continue;
 
-        char *msg =
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 20\r\n"
-        "\r\n"
-        "<h1>Hello World</h1>";
+        char data[1024];
 
-        send(new_fd, msg, strlen(msg), 0);
+        if(getRequest(new_fd, data, 1024) == -1) {
+            close(new_fd);
+            continue;
+        }
+
+        struct httpRequest parsed;
+
+        if(parseRequest(data, 1024, &parsed) == -1) {
+            close(new_fd);
+            continue;
+        }
+
+        sendResponse(new_fd, &parsed);
+        close(new_fd);
     }
+
+    freeaddrinfo(original);
     
     return 0;
 }
