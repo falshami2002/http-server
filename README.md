@@ -18,7 +18,7 @@ This project implements a basic streaming web server without any external framew
 ## Build
 
 ```bash
-make
+make```
 
 ## Run
 
@@ -26,4 +26,5 @@ make
 ./server
 
 server listens on:
-http://localhost:8080
+http://localhost:8080```
+
