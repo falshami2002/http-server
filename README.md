@@ -15,16 +15,24 @@ This project implements a basic streaming web server without any external framew
 - Partial send handling (`send_all`)
 - Basic directory traversal protection
 
+---
+
 ## Build
 
 ```bash
-make```
+make
+```
+
+---
 
 ## Run
 
 ```bash
 ./server
+```
 
-server listens on:
-http://localhost:8080```
+The server listens on:
 
+```
+http://localhost:8080
+```
